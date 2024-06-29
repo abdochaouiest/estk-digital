@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:js_interop';
 import 'package:attendance_appschool/data/sqflite/DBHelper.dart';
 import 'package:attendance_appschool/features/prof/screens/absence/absence_success_page.dart';
 import 'package:attendance_appschool/models/EtudianteItem.dart';
@@ -60,7 +61,9 @@ class _AbsencePageState extends State<AbsenceQrCodePage> {
           style: const TextStyle(
             fontSize: 28,
           ),
-        )));
+        )
+    )
+    );
   }
 
   void _saveAbsenceData(DateTime endAbsenceDateTime) async {
@@ -90,7 +93,7 @@ class _AbsencePageState extends State<AbsenceQrCodePage> {
         );
       }
       setState(() {
-        _absenceSaved = true; // Mark absence data as saved
+        _absenceSaved = true;
       });
       Navigator.push(
         context,
@@ -394,49 +397,43 @@ class _AbsencePageState extends State<AbsenceQrCodePage> {
       final String scannedData = barcode.rawValue ??
           '';
       _handleScannedData(scannedData);
-    }
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              backgroundColor: Colors.green,
+              content: Text("$scannedData a scanné le code QR")));
 
-    final Uint8List? capturedImage = capturedData.image;
-
-    if (capturedImage != null) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Données scannées"),
-            content: Image.memory(capturedImage),
-          );
-        },
-      );
     }
   }
 
   void _handleScannedData(String scannedData) {
     bool dataMatched = false;
+    bool alreadyScanned = false;
 
     for (var student in studentItems) {
+
       if (student.massarId == scannedData) {
-        setState(() {
-          student.isPresent = true;
-          student.containerColor = Colors.green.withOpacity(0.5);
-          student.iconData = Icons.check_circle;
-          student.iconColor = Colors.green;
-        });
-        dataMatched = true;
-        break;
+        if (student.isPresent == true) {
+          alreadyScanned = true;
+          break;
+        }else{
+          setState(() {
+            student.isPresent = true;
+          });
+          dataMatched = true;
+          break;
+        }
       }
     }
-
-    if (!dataMatched) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Étudiant non trouvé'),
-            content: Text("Les données scannées ne correspondent à aucun étudiant"),
-          );
-        },
-      );
+    if (alreadyScanned) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: Colors.orange,
+        content: Text("Le code QR a déjà été scanné par cet étudiant"),
+      ));
+    }else if (!dataMatched) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              backgroundColor: Colors.red,
+              content: Text("Étudiant non trouvé ! Les données scannées ne correspondent à aucun étudiant")));
     }
   }
 }
